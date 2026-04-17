@@ -41,6 +41,7 @@ def _summarize_tree_node(node: dict, row_map: dict, level: int = 1) -> tuple[lis
         current = {
             "level": level,
             "module": node["name"],
+            "description": node.get("description", "").strip(),
             "base_total": row["base_total"],
             "total": row["total"],
             "is_leaf": True,
@@ -59,6 +60,7 @@ def _summarize_tree_node(node: dict, row_map: dict, level: int = 1) -> tuple[lis
     current = {
         "level": level,
         "module": node["name"],
+        "description": node.get("description", "").strip(),
         "base_total": base_total,
         "total": total,
         "is_leaf": False,
@@ -91,9 +93,9 @@ def _build_display_summary_rows(summary_rows: list[dict]) -> list[dict]:
             {
                 "层级": row["level"],
                 "模块": row["module"],
+                "功能描述": row.get("description", ""),
                 "原始人天": _to_person_days(row["base_total"]),
                 "建议人天": _to_person_days(row["total"]),
-                "是否叶子模块": "是" if row["is_leaf"] else "否",
             }
         )
     return result
@@ -102,13 +104,13 @@ def _build_display_summary_rows(summary_rows: list[dict]) -> list[dict]:
 def _build_display_detail_rows(rows: list[dict]) -> list[dict]:
     result = []
     for row in rows:
-        display_row = {"模块": row["module"]}
+        display_row = {"模块": row["module"], "功能描述": row.get("description", "")}
         for role, label in ROLE_LABELS.items():
             display_row[label] = _to_person_days(row.get(role, 0))
         display_row["原始人天"] = _to_person_days(row["base_total"])
         display_row["冗余比例"] = row["buffer_ratio"]
         display_row["建议人天"] = _to_person_days(row["total"])
-        display_row["说明"] = _format_reason_summary(row["reason_summary"])
+        display_row["评估依据"] = _format_reason_summary(row["reason_summary"])
         result.append(display_row)
     return result
 

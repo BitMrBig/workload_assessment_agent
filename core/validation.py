@@ -2,12 +2,19 @@ ROLE_NAMES = {"product", "backend", "frontend", "app", "ui", "testing", "algorit
 
 
 def ensure_valid_presale_response(data: dict) -> None:
-    required = {"modules", "module_assignments", "clarifications", "next_action"}
+    required = {"modules", "module_assignments", "clarifications", "next_action", "confirmation_status"}
     missing = required - set(data.keys())
     if missing:
         raise ValueError(f"Presale response missing keys: {sorted(missing)}")
     if data["next_action"] not in {"clarify", "done"}:
         raise ValueError(f"Invalid next_action: {data['next_action']}")
+    if data["confirmation_status"] not in {"pending", "confirmed", "revise"}:
+        raise ValueError(f"Invalid confirmation_status: {data['confirmation_status']}")
+    for module in data["modules"]:
+        if "name" not in module:
+            raise ValueError("Presale module missing name.")
+        if "description" not in module:
+            raise ValueError(f"Presale module missing description: {module['name']}")
 
 
 def ensure_assignments_cover_modules(modules: list[str], assignments: dict) -> None:

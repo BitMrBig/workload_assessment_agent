@@ -1,9 +1,17 @@
 def merge_results(
-    modules: list[str], assignments: dict, results: dict, roles: list[str], effort_buffer_ratio: float
+    modules: list[str],
+    module_detail_map: dict,
+    assignments: dict,
+    results: dict,
+    roles: list[str],
+    effort_buffer_ratio: float,
 ) -> list[dict]:
     rows = []
     for module_name in modules:
-        row = {"module": module_name}
+        row = {
+            "module": module_name,
+            "description": module_detail_map.get(module_name, {}).get("description", ""),
+        }
         total = 0
         reasons = []
         for role in roles:

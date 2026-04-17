@@ -39,6 +39,7 @@ def _summarize_tree_node(node: dict, row_map: dict) -> dict:
         row = row_map[node["name"]]
         return {
             "name": node["name"],
+            "description": node.get("description", "").strip(),
             "base_total": row["base_total"],
             "total": row["total"],
             "children": [],
@@ -48,6 +49,7 @@ def _summarize_tree_node(node: dict, row_map: dict) -> dict:
     summarized_children = [_summarize_tree_node(child, row_map) for child in children]
     return {
         "name": node["name"],
+        "description": node.get("description", "").strip(),
         "base_total": sum(child["base_total"] for child in summarized_children),
         "total": sum(child["total"] for child in summarized_children),
         "children": summarized_children,
@@ -61,6 +63,8 @@ def _append_module_outline(lines: list[str], nodes: list[dict], level: int = 0) 
         lines.append(
             f"{indent}- {node['name']}: 原始 {_to_person_days(node['base_total'])}人天, 建议 {_to_person_days(node['total'])}人天"
         )
+        if node.get("description"):
+            lines.append(f"{indent}  描述: {node['description']}")
         if node["children"]:
             _append_module_outline(lines, node["children"], level + 1)
 
@@ -69,6 +73,7 @@ def build_report(
     requirement_text: str,
     module_tree: list[dict],
     modules: list[str],
+    module_details: list[dict],
     assignments: dict,
     rows: list[dict],
     active_agents: list[str],
@@ -93,6 +98,10 @@ def build_report(
 
     _append_module_outline(lines, summarized_tree)
 
+    lines.extend(["", "## 模块说明"])
+    for item in module_details:
+        lines.append(f"- {item['name']}: {item.get('description', '').strip() or '无描述'}")
+
     if clarification_history:
         lines.extend(["", "## 澄清记录"])
         for item in clarification_history:
@@ -116,6 +125,7 @@ def build_report(
         lines.append(
             f"- {row['module']}: 原始 {_to_person_days(row['base_total'])}人天, 建议 {_to_person_days(row['total'])}人天"
         )
+        lines.append(f"  - 描述: {row.get('description', '').strip() or '无描述'}")
         if row["reason_summary"]:
             lines.append(f"  - {_format_reason_summary(row['reason_summary'])}")
 
