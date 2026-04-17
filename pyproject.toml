@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "workload-harness"
+version = "0.1.0"
+description = "CLI harness for structured workload assessment with multi-agent orchestration."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = [
+  "anthropic>=0.51.0",
+  "openai>=1.30.0",
+  "openpyxl>=3.1.2",
+  "tomli>=2.0.1; python_version < '3.11'",
+]
+
+[project.scripts]
+workload-harness = "main:main"
+
+[tool.setuptools]
+py-modules = ["main", "harness"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["agents", "core", "output"]
+
+[tool.setuptools.package-data]
+agents = ["*.md"]
