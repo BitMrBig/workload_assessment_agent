@@ -1,4 +1,4 @@
-# Workload Harness
+# Workload Agent
 
 一个基于多 Agent 混合编排模式的 CLI 工具，用于将需求文本转换为结构化工作量评估结果。
 
