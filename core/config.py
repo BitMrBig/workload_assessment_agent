@@ -12,6 +12,7 @@ DEFAULT_CONFIG = {
         "output_dir": "sessions",
         "max_clarify_rounds": 5,
         "effort_buffer_ratio": 0.2,
+        "workload_unit": "person_day",
     },
     "llm": {
         "default": {
@@ -68,6 +69,9 @@ def load_config(config_path: Path) -> dict:
     user_config = tomllib.loads(config_path.read_text(encoding="utf-8"))
     config = _deep_merge(DEFAULT_CONFIG, user_config)
     config = _resolve_provider_keys(config)
+    workload_unit = config["app"].get("workload_unit", "person_day")
+    if workload_unit not in {"person_day", "hour"}:
+        raise ValueError("app.workload_unit must be either 'person_day' or 'hour'.")
 
     output_dir = Path(config["app"]["output_dir"])
     output_dir.mkdir(parents=True, exist_ok=True)

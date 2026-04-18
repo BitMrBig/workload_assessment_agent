@@ -66,6 +66,21 @@ class HarnessRunner:
             print(f"{index}. {item['name']}")
             print(f"   描述: {description}")
 
+    @staticmethod
+    def _build_clarification_summary(clarification_history: list[dict]) -> str:
+        if not clarification_history:
+            return ""
+        lines = []
+        for item in clarification_history:
+            answers = item.get("answers", [])
+            if not answers:
+                continue
+            for answer in answers:
+                question = answer.get("question", "").strip()
+                reply = answer.get("answer", "").strip() or "未提供"
+                lines.append(f"- {question}: {reply}")
+        return "\n".join(lines)
+
     def _collect_presale_clarifications(
         self,
         presale_payload: dict,
@@ -122,6 +137,7 @@ class HarnessRunner:
         module_confirmation_history = []
         presale_payload = {
             "project_requirements": requirement_text,
+            "current_project_background": "",
             "clarification_history": clarification_history,
             "available_roles": ROLE_AGENTS,
             "max_module_depth": 1,
@@ -166,6 +182,7 @@ class HarnessRunner:
             confirmation_round += 1
             presale_payload = {
                 "project_requirements": requirement_text,
+                "current_project_background": presale_result.get("project_background", ""),
                 "clarification_history": clarification_history,
                 "available_roles": ROLE_AGENTS,
                 "max_module_depth": 1,
@@ -216,6 +233,7 @@ class HarnessRunner:
     ) -> Path:
         max_rounds = int(self.config["app"]["max_clarify_rounds"])
         effort_buffer_ratio = float(self.config["app"]["effort_buffer_ratio"])
+        workload_unit = self.config["app"]["workload_unit"]
         self._log("Step 0/7: creating session directory.")
         session_dir = self.session_store.create_session_dir(session_name=session_name)
 
@@ -229,6 +247,8 @@ class HarnessRunner:
         module_details = build_leaf_module_details(presale_result["modules"])
         module_detail_map = build_leaf_module_detail_map(presale_result["modules"])
         assignments = presale_result["module_assignments"]
+        clarification_summary = self._build_clarification_summary(clarification_history)
+        project_background_summary = presale_result.get("project_background", "").strip()
         self._log(f"Step 3/7: validating modules and assignments for {len(modules)} leaf modules.")
         ensure_assignments_cover_modules(modules, assignments)
 
@@ -238,6 +258,8 @@ class HarnessRunner:
             "module_details": module_details,
             "module_assignments": assignments,
             "available_roles": ROLE_AGENTS,
+            "clarification_summary": clarification_summary,
+            "project_background_summary": project_background_summary,
         }
         dispatch_result = self._call_agent("dispatcher_agent", dispatch_payload)
         recommended_agents = dispatch_result.get("active_agents", [])
@@ -258,6 +280,8 @@ class HarnessRunner:
             assigned_module_details = [item for item in module_details if item["name"] in assigned_modules]
             role_payload = {
                 "project_requirements": requirement_text,
+                "clarification_summary": clarification_summary,
+                "project_background_summary": project_background_summary,
                 "modules": modules,
                 "module_details": module_details,
                 "assignments": assignments,
@@ -292,25 +316,36 @@ class HarnessRunner:
             rows=table_rows,
             active_agents=active_agents,
             clarification_history=clarification_history,
+            clarification_summary=clarification_summary,
+            project_background_summary=project_background_summary,
             effort_buffer_ratio=effort_buffer_ratio,
+            workload_unit=workload_unit,
         )
 
         self._log("Step 7/7: exporting report, session, and Excel.")
-        save_excel(presale_result["modules"], table_rows, session_dir / "workload.xlsx")
+        save_excel(
+            presale_result["modules"],
+            table_rows,
+            session_dir / "workload.xlsx",
+            workload_unit=workload_unit,
+        )
         self.session_store.write_text(session_dir / "report.md", report_text)
         self.session_store.write_json(
             session_dir / "session.json",
             {
                 "input": requirement_text,
                 "clarification_history": clarification_history,
+                "clarification_summary": clarification_summary,
                 "module_confirmation_history": module_confirmation_history,
                 "presale_result": presale_result,
                 "module_details": module_details,
+                "project_background_summary": project_background_summary,
                 "dispatch_result": dispatch_result,
                 "recommended_agents": recommended_agents,
                 "evaluation_agents": active_agents,
                 "role_results": role_results,
                 "effort_buffer_ratio": effort_buffer_ratio,
+                "workload_unit": workload_unit,
                 "table_rows": table_rows,
                 "report_path": str(session_dir / "report.md"),
                 "excel_path": str(session_dir / "workload.xlsx"),

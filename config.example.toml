@@ -2,6 +2,7 @@
 output_dir = "sessions"
 max_clarify_rounds = 5
 effort_buffer_ratio = 0.2
+workload_unit = "person_day"
 
 [llm.default]
 provider = "openai"

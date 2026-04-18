@@ -17,6 +17,16 @@ def _to_person_days(hours: Union[int, float]) -> float:
     return round(hours / 8, 1)
 
 
+def _format_workload_value(hours: Union[int, float], workload_unit: str) -> Union[int, float]:
+    if workload_unit == "hour":
+        return int(hours) if float(hours).is_integer() else round(hours, 1)
+    return _to_person_days(hours)
+
+
+def _workload_label(workload_unit: str) -> str:
+    return "小时" if workload_unit == "hour" else "人天"
+
+
 def _format_reason_summary(reason_summary: str) -> str:
     if not reason_summary:
         return ""
@@ -86,36 +96,38 @@ def _append_sheet(sheet, rows: list[dict]) -> None:
         sheet.append([row.get(header, "") for header in headers])
 
 
-def _build_display_summary_rows(summary_rows: list[dict]) -> list[dict]:
+def _build_display_summary_rows(summary_rows: list[dict], workload_unit: str) -> list[dict]:
     result = []
+    workload_label = _workload_label(workload_unit)
     for row in summary_rows:
         result.append(
             {
                 "层级": row["level"],
                 "模块": row["module"],
                 "功能描述": row.get("description", ""),
-                "原始人天": _to_person_days(row["base_total"]),
-                "建议人天": _to_person_days(row["total"]),
+                f"原始{workload_label}": _format_workload_value(row["base_total"], workload_unit),
+                f"建议{workload_label}": _format_workload_value(row["total"], workload_unit),
             }
         )
     return result
 
 
-def _build_display_detail_rows(rows: list[dict]) -> list[dict]:
+def _build_display_detail_rows(rows: list[dict], workload_unit: str) -> list[dict]:
     result = []
+    workload_label = _workload_label(workload_unit)
     for row in rows:
         display_row = {"模块": row["module"], "功能描述": row.get("description", "")}
-        for role, label in ROLE_LABELS.items():
-            display_row[label] = _to_person_days(row.get(role, 0))
-        display_row["原始人天"] = _to_person_days(row["base_total"])
+        for role, role_label in ROLE_LABELS.items():
+            display_row[role_label] = _format_workload_value(row.get(role, 0), workload_unit)
+        display_row[f"原始{workload_label}"] = _format_workload_value(row["base_total"], workload_unit)
         display_row["冗余比例"] = row["buffer_ratio"]
-        display_row["建议人天"] = _to_person_days(row["total"])
+        display_row[f"建议{workload_label}"] = _format_workload_value(row["total"], workload_unit)
         display_row["评估依据"] = _format_reason_summary(row["reason_summary"])
         result.append(display_row)
     return result
 
 
-def save_excel(module_tree: list[dict], rows: list[dict], path: Path) -> None:
+def save_excel(module_tree: list[dict], rows: list[dict], path: Path, workload_unit: str) -> None:
     try:
         from openpyxl import Workbook
     except ModuleNotFoundError as exc:
@@ -131,7 +143,7 @@ def save_excel(module_tree: list[dict], rows: list[dict], path: Path) -> None:
         return
 
     summary_rows = _build_summary_rows(module_tree, rows)
-    _append_sheet(summary_sheet, _build_display_summary_rows(summary_rows))
-    _append_sheet(detail_sheet, _build_display_detail_rows(rows))
+    _append_sheet(summary_sheet, _build_display_summary_rows(summary_rows, workload_unit))
+    _append_sheet(detail_sheet, _build_display_detail_rows(rows, workload_unit))
 
     workbook.save(path)

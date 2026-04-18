@@ -2,7 +2,14 @@ ROLE_NAMES = {"product", "backend", "frontend", "app", "ui", "testing", "algorit
 
 
 def ensure_valid_presale_response(data: dict) -> None:
-    required = {"modules", "module_assignments", "clarifications", "next_action", "confirmation_status"}
+    required = {
+        "modules",
+        "module_assignments",
+        "clarifications",
+        "next_action",
+        "confirmation_status",
+        "project_background",
+    }
     missing = required - set(data.keys())
     if missing:
         raise ValueError(f"Presale response missing keys: {sorted(missing)}")
